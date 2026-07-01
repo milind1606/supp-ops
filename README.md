@@ -66,3 +66,28 @@ To trace multi-agent performance and run system diagnostics:
 1. **Track Graph Ingress Loops**: Verify multi-service connection traces inside the LangSmith execution dashboard view.
 2. **Audit LLM Context Submissions**: Open the specific `ChatBedrock` execution nodes to inspect historical context data injection sizes and prompt token counts.
 3. **Analyze Latency Bottlenecks**: Identify slower API calls by reviewing step-by-step latency inside the `SupportOpsCoordinator` graph trace layout.
+
+
+
+
+
+# Docker 
+## following command to assemble and run all containers simultaneously in background daemon mode
+docker compose up --build -d
+
+## Ensure all distributed nodes have safely cleared internal execution checks:
+docker compose ps
+
+
+## Fire a sample infrastructure ticket down to your exposed local REST interface port 8000. This triggers the full sequential runtime workflow across all containers instantly:
+curl -X POST http://localhost:8000/api/v1/tickets \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alert": "MST Memory Leak on SYDMST031lx",
+    "ticket_description": "Production caching boundaries exceeded, service experiencing high latency",
+    "application_name": "JIRA-PROD-SUPPORT-88"
+  }'
+
+
+# To sweep away local running instances and free system networking ports cleanly:
+docker compose down -v

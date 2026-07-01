@@ -1,0 +1,184 @@
+version: '3.8'
+
+networks:
+  support-ops-mesh:
+    driver: bridge
+
+services:
+  # =====================================================================
+  # 1. SHARED PERSISTENCE STATE REGISTRY
+  # =====================================================================
+  redis-state-store:
+    image: redis:7.0-alpine
+    container_name: redis-state-store
+    ports:
+      - "6379:6379"
+    networks:
+      - support-ops-mesh
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # =====================================================================
+  # 2. INTEGRATION TESTING ECOSYSTEM MOCKS
+  # =====================================================================
+  mock-infrastructure-services:
+    build:
+      context: ./mock-infrastructure-services
+      dockerfile: Dockerfile
+    container_name: mock-infrastructure-services
+    ports:
+      - "8008:8001"
+    networks:
+      - support-ops-mesh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # =====================================================================
+  # 3. REST INTERFACE GATEWAY INGRESS
+  # =====================================================================
+  rest-interface:
+    build:
+      context: ./rest-interface
+      dockerfile: Dockerfile
+    container_name: rest-interface
+    ports:
+      - "8000:8001"
+    environment:
+      - ORCHESTRATOR_URL=http://support-ops-central-orchestrator:8001/orchestrate
+    networks:
+      - support-ops-mesh
+    depends_on:
+      - support-ops-central-orchestrator
+
+  # =====================================================================
+  # 4. CENTRAL LANGGRAPH COORDINATOR NODE
+  # =====================================================================
+  support-ops-central-orchestrator:
+    build:
+      context: ./support-ops-central-orchestrator
+      dockerfile: Dockerfile
+    container_name: support-ops-central-orchestrator
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_HOST=redis-state-store
+      - REDIS_PORT=6379
+      - DISCOVERY_URL=http://support-ops-platform-discovery:8001/discover
+      - MCP_ANALYZER_URL=http://support-ops-alert-analyzer-mcp:8001/analyze
+      - ANSIBLE_URL=http://support-ops-ansible-trigger:8001/execute
+      - VALIDATOR_URL=http://support-ops-validator:8001/validate
+      - AWS_BEDROCK_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=mock_dev_key
+      - AWS_SECRET_ACCESS_KEY=mock_dev_secret
+      - LANGCHAIN_TRACING_V2=true
+      - LANGCHAIN_PROJECT=Support-Ops-Local-Compose
+      - LANGCHAIN_API_KEY=ls__your_key_here
+    networks:
+      - support-ops-mesh
+    depends_on:
+      redis-state-store:
+        condition: service_healthy
+
+  # =====================================================================
+  # 5. PLATFORM TOPOLOGY ROUTING ENGINE
+  # =====================================================================
+  support-ops-platform-discovery:
+    build:
+      context: ./support-ops-platform-discovery
+      dockerfile: Dockerfile
+    container_name: support-ops-platform-discovery
+    ports:
+      - "8002:8001"
+    environment:
+      - TOPOLOGY_FILE_PATH=/app/topology-all-systems/topoloy-all-systems.txt
+      - MCP_ANALYZER_URL=http://support-ops-alert-analyzer-mcp:8001/analyze
+      - MST_ANALYZER_URL=http://support-ops-alert-analyzer-mst:8001/analyze
+    volumes:
+      - ./topoloy-all-systems:/app/topology-all-systems:ro
+    networks:
+      - support-ops-mesh
+
+  # =====================================================================
+  # 6. SPECIALIZED RETRIEVAL AGENT - MCP
+  # =====================================================================
+  support-ops-alert-analyzer-mcp:
+    build:
+      context: ./support-ops-alert-analyzer-mcp
+      dockerfile: Dockerfile
+    container_name: support-ops-alert-analyzer-mcp
+    ports:
+      - "8003:8001"
+    environment:
+      - KB_DIR_PATH=/app/mcp_knowledge_base
+      - AWS_BEDROCK_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=mock_dev_key
+      - AWS_SECRET_ACCESS_KEY=mock_dev_secret
+    volumes:
+      - ./mcp_knowledge_base:/app/mcp_knowledge_base:ro
+    networks:
+      - support-ops-mesh
+
+  # =====================================================================
+  # 7. SPECIALIZED RETRIEVAL AGENT - MST
+  # =====================================================================
+  support-ops-alert-analyzer-mst:
+    build:
+      context: ./support-ops-alert-analyzer-mst
+      dockerfile: Dockerfile
+    container_name: support-ops-alert-analyzer-mst
+    ports:
+      - "8004:8001"
+    environment:
+      - KB_DIR_PATH=/app/mst_knowledge_base
+      - AWS_BEDROCK_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=mock_dev_key
+      - AWS_SECRET_ACCESS_KEY=mock_dev_secret
+    volumes:
+      - ./mst_knowledge_base:/app/mst_knowledge_base:ro
+    networks:
+      - support-ops-mesh
+
+  # =====================================================================
+  # 8. REMEDIATION EXECUTION EDGE CLIENT
+  # =====================================================================
+  support-ops-ansible-trigger:
+    build:
+      context: ./support-ops-ansible-trigger
+      dockerfile: Dockerfile
+    container_name: support-ops-ansible-trigger
+    ports:
+      - "8005:8001"
+    environment:
+      - ANSIBLE_TOWER_URL=http://mock-infrastructure-services:8001/api/v2/job_templates/launch
+    networks:
+      - support-ops-mesh
+    depends_on:
+      mock-infrastructure-services:
+        condition: service_healthy
+
+  # =====================================================================
+  # 9. EVALUATOR CRITIC TRANSPARENCY AUDITOR
+  # =====================================================================
+  support-ops-validator:
+    build:
+      context: ./support-ops-validator
+      dockerfile: Dockerfile
+    container_name: support-ops-validator
+    ports:
+      - "8006:8001"
+    environment:
+      - JIRA_COMMENT_URL_TEMPLATE=http://mock-infrastructure-services:8001/rest/api/2/issue/{issue_key}/comment
+      - AWS_BEDROCK_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=mock_dev_key
+      - AWS_SECRET_ACCESS_KEY=mock_dev_secret
+    networks:
+      - support-ops-mesh
+    depends_on:
+      mock-infrastructure-services:
+        condition: service_healthy
