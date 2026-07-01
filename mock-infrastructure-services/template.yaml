@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Mock infrastructure services container hosting local ecosystem APIs.
+
+Resources:
+  MockServicesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 512
+      Timeout: 15
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .

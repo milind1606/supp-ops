@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: support-ops-central-orchestrator managing active agent streams via Amazon ElastiCache Redis.
+
+Resources:
+  ElastiCacheCluster:
+    Type: AWS::ElastiCache::CacheCluster
+    Properties:
+      Engine: redis
+      CacheNodeType: cache.t3.medium
+      NumCacheNodes: 1
+      VpcSecurityGroupIds:
+        - !Ref RedisSecurityGroup
+      EngineVersion: "7.0"
+
+  RedisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Inbound ElastiCache access controls for local multi-agents
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          CidrIp: 0.0.0.0/0
+
+  OrchestratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 1024
+      Timeout: 90
+      Environment:
+        Variables:
+          REDIS_HOST: !GetAtt ElastiCacheCluster.RedisEndpoint.Address
+          REDIS_PORT: 6379
+          PLATFORM_DISCOVERY_URL: "http://support-ops-platform-discovery:8001/discover"
+          ANSIBLE_TRIGGER_URL: "http://support-ops-ansible-trigger:8001/execute"
+          VALIDATOR_URL: "http://support-ops-validator:8001/validate"
+          AWS_BEDROCK_REGION: "us-east-1"
+          LANGCHAIN_TRACING_V2: "true"
+          LANGCHAIN_ENDPOINT: "https://langchain.com"
+          LANGCHAIN_API_KEY: "mock_key"
+          LANGCHAIN_PROJECT: "support-ops-orchestration"
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .

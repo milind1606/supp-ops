@@ -1,0 +1,51 @@
+import pytest
+from unittest.mock import patch, MagicMock
+
+# 1. Intercept and mock out AWS Bedrock before loading the FastAPI application
+mock_bedrock_class = patch("langchain_aws.ChatBedrock").start()
+mock_llm_instance = MagicMock()
+mock_llm_instance.invoke.return_value.content = (
+    "[HOST]: SYDMST031lx\n"
+    "[ENVIRONMENT]: envp-mbk\n"
+    "[SUMMARY]: MST Memory Leak on SYDMST031lx\n"
+    "[RESOLUTION]: Trigger Ansible playbook flush_redis_cache."
+)
+mock_bedrock_class.return_value = mock_llm_instance
+
+# 2. Safely import app now that dependencies are mocked
+from fastapi.testclient import TestClient
+from src.main import app
+
+client = TestClient(app)
+
+def test_mst_analyzer_health_check():
+    """Verifies that the MST analyzer application layer health probe works perfectly."""
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
+
+def test_mst_analyzer_engine_execution_flow():
+    """Audits the prompt formatting, LlamaIndex metadata filter construction, and parsing loops."""
+    # Package the execution transaction payloads
+    payload = {
+        "payload": {
+            "alert": "MST Memory Leak on SYDMST031lx",
+            "ticket_description": "Cache layer out of memory thresholds"
+        },
+        "transaction_id": "TX-MST-7711-OK"
+    }
+
+    # Fire request to the FastAPI application gateway
+    response = client.post("/analyze", json=payload)
+    
+    # Rigorous assertion validations
+    assert response.status_code == 200
+    data = response.json()
+    assert data["target_host"] == "SYDMST031lx"
+    assert data["inferred_playbook"] == "flush_redis_cache"
+    assert data["assigned_queue"] == "mst.sydney.prod"
+    assert "[HOST]: SYDMST031lx" in data["raw_analysis"]
+
+# Clean up our global patches after the test run finishes
+def teardown_module(module):
+    patch.stopall()

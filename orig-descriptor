@@ -1,0 +1,188 @@
+
+Generate code for the following project in a single python file to create the directories and all files. Split it into multi part to avoid hitting token-limits
+
+Typical Scenario : A transaction in the support-ops multi-agent system would be like a support ticket supplied as input which gets analysed to select which alert analyzer agent it needs to go to, then the specific alert analyzer agent with its respective knowledge-base will produce a result and possibly an ansible playbook triggered to resolve it. 
+Centralised Audit-Trail with Evaluator/Critic Pattern for the multi agent setup. Here redis should maintain execution log of all agents for a given transaction and a validator pattern should confirm the transaction to be failed or successful. Final entry of the result and summary would be made as a comment to jira
+
+EKS + Fargate microservices for creating a support-ops multi-agent system using Claude 3.5 Sonnet . 
+To expose API from docker use  ENTRYPOINT ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
+This should be a distributed multi agent setup using an industry standard implementation using langserve langchain , langgraph and langsmith .
+the agents are to be integrated together using HTTP REST APIs via LangServe clients, coordinated by a central orchestrator. Use AWS ElastiCache for Redis (RedisSaver) as the shared state registry that glues them together.
+Use langchain_aws ChatBedrock for all agents
+
+create an industry-standard layout for each microservice layer:
+repository-name/
+├── Dockerfile             # Multi-stage optimized builder file
+├── requirements.txt       # Frozen version dependency pinning
+├── samconfig.toml         # Target profile configuration bindings
+├── template.yaml          # CloudFormation serverless extension manifests
+├── src/                   # Encapsulated application context folder
+│   ├── __init__.py
+│   └── app.py / main.py   # Explicit runtime engine entrypoints
+└── tests/                 # Detached mirror test harness structure
+    ├── __init__.py
+    └── test_*.py          # Pytest-native assertions and engine test configurations
+
+Create a readme with deployment instructions and for using langsmith to troubleshoot. 
+Also mock services for ansible tower and jira systems
+
+Consider Following separate microservices 
+
+1-REST interface 
+A REST interface would be needed which will receive requests to forward to support ops core orchestration agent. One of the rest interface would be to capture  alert, ticket_description, additional_context,application_name from input  and pass them to the multi agent setup. 
+Separate the services logically for a clean, modular design, we should extract individual logic layers into dedicated, standalone Python class files.
+
+2-support-ops-central-orchestrator
+A seperate  service for a central orchestrator agent called support ops core agent would be needed. In future this setup may have additional agents to act upon the results of the alert analyzer agent. 
+This agent can have a prompt to guide and evaluate the decision to call the next appropriate agents. 
+As this is the central service , hence also include in template.yaml setup needed for redis stream using ElastiCache for redis. 
+separate the services logically for a clean, modular design, we should extract individual logic layers into dedicated, standalone Python class files.
+
+3-support-ops-platform-discovery 
+agent to determine the right parent platform based on server topology mapping and select the sequent alert analyzer agent 
+
+4-support-ops-alert-analyzer-mcp
+Uses LlamaIndex for vector indexing and semantic search against incident knowledge base, which would be  Bedrock knowledge base from mcp_knowledge_base(past_incident_resolutions  + server_mappings ).
+Alert analyzer agent prompt = """You are an expert IT support personnel.
+Cross-reference the query details against the incident knowledge base containing past resolutions and server mappings.
+Isolate the hostname and service from server information.
+Extract debugging paths and resolution steps from historical incident data.
+Output your findings with precise information on following
+[HOST]: Specify the target hostname found in the knowledge base (or UNKNOWN if not found).
+[ENVIRONMENT]: Specify the environment (e.g., envp, envb, envd, enve, envm, envl, envk, etc).
+[SUMMARY]: A clear, precise summary of the error or alert condition.
+[RESOLUTION]: Your analysis and recommendations for resolution based on historical incident patterns.
+"""
+Use llama_index.core.vector_stores.types MetadataFilter to have a weighted-filter based on time, so that recent incidents have more weight.
+Separate the services logically for a clean, modular design, we should extract individual logic layers into dedicated, standalone Python class files.
+
+5- support-ops-alert-analyzer-mst
+Uses LlamaIndex for vector indexing and semantic search against incident knowledge base, which would be  Bedrock knowledge base from mst_knowledge_base(past_incident_resolutions  + server_mappings ).
+Alert analyzer agent prompt = """You are an expert IT support personnel.
+Cross-reference the query details against the incident knowledge base containing past resolutions and server mappings.
+Isolate the hostname and service from server information.
+Extract debugging paths and resolution steps from historical incident data.
+Output your findings with precise information on following
+[HOST]: Specify the target hostname found in the knowledge base (or UNKNOWN if not found).
+[ENVIRONMENT]: Specify the environment (e.g., envp, envb, envd, enve, envm, envl, envk, etc).
+[SUMMARY]: A clear, precise summary of the error or alert condition.
+[RESOLUTION]: Your analysis and recommendations for resolution based on historical incident patterns.
+"""
+Use llama_index.core.vector_stores.types MetadataFilter to have a weighted-filter based on time, so that recent incidents have more weight.
+Separate the services logically for a clean, modular design, we should extract individual logic layers into dedicated, standalone Python class files.
+
+
+4-support-ops-Ansible-trigger
+Agent use an ansible tower api as a target evaluates the result of the ansible tower response.
+Separate the services logically for a clean, modular design, we should extract individual logic layers into dedicated, standalone Python class files.
+
+5-Support-ops-validator
+Evaluate Trace against the execution_logs and Infrastructure Runbooks for a given transaction and based on all this information determine a failure or success status. Finally prepare a precise comment for updating jira about the resolution.  
+Separate the services logically for a clean, modular design, we should extract individual logic layers into dedicated, standalone Python class files.
+
+6- Respositories for  knowledge bases
+load knowledge base for vector database from following text files 
+i──mcp_knowledge_base/           # Master repository for internal runbooks & mappings
+   ├── past_incident_resolutions.txt # Historical ticket resolutions index where the alert is the incident being reported followed by its resolution
+   └── server_mappings.txt # Registry for Server topology and meta-data like queue associations
+   └── reademe.md # contain info for knowledge for this application and commands to sync them 
+ii──mst_knowledge_base/           # Master repository for internal runbooks & mappings
+   ├── past_incident_resolutions.txt # Historical ticket resolutions index where the alert is the incident being reported followed by its resolution
+   └── server_mappings.txt # Registry for Server topology and meta-data like queue associations
+   └── reademe.md # contain info for knowledge for this application and commands to sync them 
+iii──topoloy-all-systems/           # Master repository for internal runbooks & mappings
+   ├── topoloy-all-systems.txt
+   └── reademe.md # contain info for knowledge for this application and commands to sync them 
+
+
+sample contents for: topoloy-all-systems.txt
+=== ENTRY ===
+HOSTNAME:hkgmcp003lx|ENVIRONMENT: envp-hk-shared|PARENT-PLATFORM:MCP
+HOSTNAME:SYDMST031lx|ENVIRONMENT: envp-mbk|PARENT-PLATFORM:MST
+
+sample content for: server_mappings.txt
+=== ENTRY ===
+HOSTNAME: hkgmcp003lx
+ENVIRONMENT: envp-hk-shared
+SERVICE NAME: mcp-distirbution-service
+QUEUE MAPPINGS: MCP.SRV.DISTRIBUTE02.REQ, MCP.SRV.DISFTEAGNT01.REQ, MCP.SRV.DISFTEAGNT01.REP, MCP.SRV.DISTFTE0001.REP.IMKPMMCP1
+
+=== ENTRY ===
+HOSTNAME: SYDMCP033LX
+ENVIRONMENT: envp-mbk
+SERVICE NAME: mcp-breakout-service - std linux hs controllers
+QUEUE MAPPINGS: MCP.SRV.BREAKOUTLX01.REQ, MCP.SRV.BREAKOUTLX01.REP
+
+sample content for: past_incident_resolutions.txt ;
+=== ENTRY ===
+== ALERT ==
+++
+Date/Time: 2026-06-23T20:17:01.751+1000
+
+Level 1 (Operations)
+----------------------------------------
+Customer..........: TfNSW
+Job...............: TENS
+Application.......: mcp-distribution-service
+EP1 #.............: N/A
+Host Name.........: sydmcp007lx
+SFS In............: /sfs/enve/data/TfNSW/6085296475990963575/TENS-UAT-SERVER-${header.sourceExternalRelayId}/in
+SFS Out...........: /sfs/enve/data/TfNSW/6085296475990963575/TENS-UAT-SERVER-${header.sourceExternalRelayId}/out
+SFS Work..........: /sfs/enve/data/TfNSW/6085296475990963575/TENS-UAT-SERVER-${header.sourceExternalRelayId}/work
+
+Required action...: MCP has encountered an unexpected error. Please escalate.
+Escalation........: Escalate to level 2 support
+
+Level 2 (LP&M)
+----------------------------------------
+Handover document name: null
+Error message.....: SERVICE_PROCESS_ERROR;; Environment="enve";; ClientId="TfNSW";; ProductId="TENS";; TransactionId="93f84e62-6174-4d8b-bbce-1efdf9be3a99";; InstanceId="6085296475990963575";; ExternalRelayId="null";; ServiceId="TENS-UAT-SERVER";; ServiceName="TENS-UAT-SERVER";; Messages={  }
+Log location......: /apps/tomcat/logs/envb/mcp//mcp-distribution-service.log
+Stack trace.......:
+net.fxdms.mcp.model.McpException: Error in executing service TENS-UAT-SERVER-. net.fxdms.mcp.service.distribution.exception.McpDistributionServiceException: Following agent name is not configured: MELAPP003LV.E.1
+        at net.fxdms.mcp.service.McpTemplate.processServiceRequest(McpTemplate.java:515)
+        at net.fxdms.mcp.service.McpTemplate.processMessage(McpTemplate.java:469)
+==RESOLUTION==
+ the agent name MELAPP003LV.E.1 is missing in the file mcp-distribution-service-request-cmd-mqfte-9-0-0-0.properties, added the following property to the properties file HKGAPP023LX.P.1.queueManager=FHKPMA20.  The change to be effective when server is to be bounce on March 29th during patching
+
+
+ === ENTRY ===
+==ALERT ==
+
+Date/Time:2026-06-22T10:54:16.682+1000
+
+Level 1 (Operations)
+----------------------------------------
+Customer..........: VEOLIA
+Job...............: VEOLIA_NOTICES_IES
+Application.......: mcp-storedocs-loader-client
+EP1 #.............:
+Host Name.........: sydmcp012lx
+SFS In............: /sfs/envd/data/VEOLIA/5297852673365826038/storedocs-180604-17/in
+SFS Out...........: /sfs/envd/data/VEOLIA/5297852673365826038/storedocs-180604-17/work
+SFS Work..........: /sfs/envd/data/VEOLIA/5297852673365826038/storedocs-180604-17/work
+User..............: tomcat
+
+Required action...: StoreDocs loader client has encountered an unexpected error. Please escalate to level 2 support
+Escalation........: Escalate to level 2 support
+
+Level 2 (LP&M)
+----------------------------------------
+Handover document name: TODO document file path/file name
+Error message.....: PROCESS_ERROR ClientId:VEOLIA ProductId:VEOLIA_NOTICES_IES TransactionId:d3cebec6-d94f-4202-9299-6b9b5800b69c Environment:envd InstanceId:5297852673365826038 OrchestrationContext:d3cebec6-d94f-4202-9299-6b9b5800b69c ] Error:org.apache.commons.io.FileExistsException: Destination '/sfs/envd/data/VEOLIA/5297852673365826038/storedocs-180604-17/work/8100992513.PDF' already exists
+App location......: file:/sfs/envd/apps/plt/bin/storedocsclient/mcp-storedocs-loader-client-167.B.5.jar!/BOOT-INF
+Log location......: /apps/tomcat/logs/envd/mcp/mcp-storedocs-loader-client.log
+Stack trace.......:
+net.fxdms.mcp.client.exception.MCPClientException: User:[tomcat] Directory:[/sfs/envd/data/VEOLIA/5297852673365826038/storedocs-180604-17/work] Arguments:[-loadertype req -servicedir /sfs/envd/data/VEOLIA/5297852673365826038/storedocs-180604-17 -config config.xml -env envd -filereceiptid VES_INV_20260622120000151.zip -clientid VEOLIA -jobid VEOLIA_NOTICES_IES -transactionid d3cebec6-d94f-4202-9299-6b9b5800b69c ] Error:org.apache.commons.io.FileExistsException: Destination '/sfs/envd/data/VEOLIA/5297852673365826038/storedocs-180604-17/work/8100992513.PDF' already exists
+        at net.fxdms.mcp.client.storedocs.StoreDocsLoaderClient.wrapException(StoreDocsLoaderClient.java:232)
+        at net.
+
+==RESOLUTION==
+Clear work directory and restarted the MCP job
+
+
+
+
+
+
+ 

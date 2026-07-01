@@ -1,0 +1,9 @@
+=== INCIDENT ===
+ALERT: MCP Disk Out of Space on hkgmcp003lx
+RESOLUTION: Trigger Ansible playbook `clean_temp_directories`. Target host `hkgmcp003lx`.
+TIMESTAMP: 2026-06-15T12:00:00Z
+
+=== INCIDENT ===
+ALERT: MCP Connection Timeout on lonmcp001lx
+RESOLUTION: Trigger Ansible playbook `restart_mcp_broker`. Target host `lonmcp001lx`.
+TIMESTAMP: 2026-06-28T08:30:00Z

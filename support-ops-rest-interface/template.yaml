@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: REST API gateway interface edge layer isolating support-ops ticket properties.
+
+Resources:
+  RestInterfaceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          ORCHESTRATOR_URL: "http://support-ops-central-orchestrator:8001/orchestrate"
+          LANGCHAIN_TRACING_V2: "true"
+          LANGCHAIN_PROJECT: "support-ops-rest-ingress"
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .

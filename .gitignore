@@ -1,0 +1,100 @@
+# Created by pytest automatically.
+# =====================================================================
+# 1. PYTHON RUNTIME LAYER & COMPILED ARTIFACTS
+# =====================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging profiles
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# =====================================================================
+# 2. VIRTUAL ENVIRONMENTS (Per-Project & Root Isolated Layers)
+# =====================================================================
+# Local hidden environments
+.venv/
+venv/
+ENV/
+env/
++env/
+.env.bak/
+.env.old/
+
+# Anaconda / Miniconda target environments
+.conda/
+conda-bld/
+
+# Pipenv / Poetry files
+Pipfile.lock
+poetry.lock
+
+# =====================================================================
+# 3. VS CODE & LOCAL IDE SPECIFIC CONFIGURATIONS
+# =====================================================================
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+.history/
+*.code-workspace
+
+# Other common OS / IDE workspace clutter
+.DS_Store
+Thumbs.db
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# =====================================================================
+# 4. TESTING ARTIFACTS & METADATA OVERLAYS
+# =====================================================================
+# Pytest and code coverage frameworks
+.pytest_cache/
+.htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# LangSmith / LangChain local debug traces (if emitted locally)
+.langchain/
+
+# =====================================================================
+# 5. ENVIRONMENT VARIABLES, SECRETS & MOCK DATA (CRITICAL)
+# =====================================================================
+# Explicit token files, local keys and environment overrides
+.env
+.env.*
+.secrets
+*.key
+*.pem
+credentials.json
+.aws/

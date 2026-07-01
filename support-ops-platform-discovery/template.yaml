@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: System mapping engine routing topology alerts to specific analyzer nodes.
+
+Resources:
+  DiscoveryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          TOPOLOGY_FILE_PATH: "topoloy-all-systems/topoloy-all-systems.txt"
+          MCP_ANALYZER_URL: "http://support-ops-alert-analyzer-mcp:8001/analyze"
+          MST_ANALYZER_URL: "http://support-ops-alert-analyzer-mst:8001/analyze"
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .

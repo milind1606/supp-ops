@@ -1,0 +1,2 @@
+HOSTNAME:SYDMST031lx|QUEUE:mst.sydney.prod|OWNER:mst-ops
+HOSTNAME:nycmst012lx|QUEUE:mst.newyork.backup|OWNER:mst-infra

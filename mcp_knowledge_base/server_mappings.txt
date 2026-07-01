@@ -1,0 +1,2 @@
+HOSTNAME:hkgmcp003lx|QUEUE:mcp.hongkong.core|OWNER:mcp-ops
+HOSTNAME:lonmcp001lx|QUEUE:mcp.london.dev|OWNER:mcp-dev

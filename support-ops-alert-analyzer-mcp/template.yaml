@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: MCP specialised alert analyser microservice utilizing LlamaIndex data filters.
+
+Resources:
+  McpAnalyzerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 1024
+      Timeout: 60
+      Environment:
+        Variables:
+          KB_DIR_PATH: "mcp_knowledge_base"
+          AWS_BEDROCK_REGION: "us-east-1"
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .

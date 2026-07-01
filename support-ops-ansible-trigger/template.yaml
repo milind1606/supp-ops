@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Ansible orchestration router dispatching playbooks against target hosts.
+
+Resources:
+  AnsibleTriggerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          ANSIBLE_TOWER_URL: "http://mock-infrastructure-services:8001/api/v2/job_templates/launch"
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
